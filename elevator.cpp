@@ -22,6 +22,15 @@ using namespace std;
 class elevator_monitor: public Monitor{
 	Condition cv1, cv2, cv3, cv4;
 	vector< vector<int> > list_of_person_monitor;
+	int current_floor = 0;
+	vector<int> destination_floors_list;
+	int number_of_people_in_the_elevator = 0;
+	int direction_of_elevator = 1; // 1 for up and 0 for down
+	int state_of_elevator = 0; // 0 for idle, 1 for moving-up and 2 for moving down
+	int carried_weight = 0;
+	int number_of_people_inside = 0;
+
+
 
 public: elevator_monitor(): cv1(this), cv2(this), cv3(this), cv4(this){
 
@@ -43,20 +52,70 @@ public: elevator_monitor(): cv1(this), cv2(this), cv3(this), cv4(this){
 	void cv1_notify(){
 		cv1.notify();
 	}
+	void person_make_request_function(vector<int> person_feature_vector){
+		string priority;
+		bool is_person_destination_in_the_list;
+		int person_direction;
+		int person_id = person_feature_vector.at(0);
+		int person_weight = person_feature_vector.at(1);
+		int person_initial_floor = person_feature_vector.at(2);
+		int person_destination_floor = person_feature_vector.at(3);
+		int person_priority = person_feature_vector.at(4);
+		if (person_priority == 1){
+			priority.append("hp");
+		}
+		else{
+			priority.append("lp");
+		}
+		cout << "Person ("<< person_id << ", " << priority << ", " << person_initial_floor << " -> " << person_destination_floor << ", " << person_weight << ") made a request" << endl;
+
+		if (person_initial_floor < person_destination_floor){
+			person_direction = 1;
+		} else{
+			person_direction = 0;
+		}
+		if (count(destination_floors_list.begin(), destination_floors_list.end(), person_destination_floor)){
+			is_person_destination_in_the_list = true;
+			//cout << "is_person_destination_in_the_list = true" << endl;
+		} else{
+			is_person_destination_in_the_list = false;
+			//cout << "is_person_destination_in_the_list = false" << endl;
+		}
+		if (person_direction == direction_of_elevator ){
+			if (!is_person_destination_in_the_list){
+				destination_floors_list.push_back(person_destination_floor);
+
+			}
+			cout << "Elevator (Idle, " ;
+			cout << carried_weight;
+			cout << ", ";
+			cout << number_of_people_inside;
+			cout << ", ";
+			cout << current_floor;
+			cout << " -> ";
+			for(int i = 0; i < destination_floors_list.size(); i++){
+				cout << destination_floors_list.at(i) << ", ";
+			}
+			cout <<")" << endl;
+		}
+
+
+	}
 };
 
-void dummy_func(){
-	cout<<"dummy function is called."<<endl;
+void person_thread_function(elevator_monitor *em, vector<int> person_feature_list){
+	em->person_make_request_function(person_feature_list);
+	//cout<<"dummy function is called."<<endl;
 }
-void ex_func(elevator_monitor em, vector<vector<int> > person_list_ex) {
+void ex_func(elevator_monitor *em, vector<vector<int> > person_list_ex) {
 	cout<< "em.method1() is called"<< endl;
-	em.method1(std::move(person_list_ex));
+	em->method1(std::move(person_list_ex));
 	cout<< "em.method1() is ended."<<endl;
 }
-void ex_func_2(elevator_monitor em, vector<vector<int> > person_list_ex) {
+void ex_func_2(elevator_monitor *em, vector<vector<int> > person_list_ex) {
 	cout<<"ex_func_2 is called"<<endl;
 	cout<< "em.method is unlocked"<<endl;
-	em.method2();
+	em->method2();
 	//em.cv1_notify();
 }
 
@@ -116,27 +175,27 @@ int main(int argc, char *argv[]) {
 		else
 		{ // people features
 			vector <int> tmp_vector;
+			tmp_vector.push_back(index_for_input_line - 1);
 			for (istringstream is(line); is >> word;){
 				tmp_vector.push_back(stoi(word));
 			}
 			list_of_persons.push_back(tmp_vector);
-			//person_features.erase(person_features.begin(), person_features.end());
 		}
 		index_for_input_line++;
 	}
-	for (int i = 0; i < number_of_people; i++){
-		cout << i + 1 << " people fetures are;" << endl;
-		for (int y = 0; y < list_of_persons.at(i).size() ; y++){
-			cout << "feature " << y + 1 << " is " << list_of_persons.at(i).at(y) << endl;
-		}
-	}
 
 	elevator_monitor elevator_monitor_instance;
-	thread th1(ex_func, elevator_monitor_instance, list_of_persons);
-	sleep(3);
-	thread th2(ex_func_2, elevator_monitor_instance, list_of_persons);
-	th1.join();
-	th2.join();
+	thread person_thread_list[number_of_people];
+	for (int z = 0; z < number_of_people ; z++){
+		person_thread_list[z] = thread(person_thread_function, &elevator_monitor_instance, list_of_persons.at(z));
+		usleep(10);
+	}
+
+	for (int z = 0; z < number_of_people ; z++){
+		person_thread_list[z].join();
+	}
+
+	cout << "all threads are finished" << endl;
 
 
 
