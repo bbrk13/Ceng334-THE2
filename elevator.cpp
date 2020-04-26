@@ -132,9 +132,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	elevator_monitor elevator_monitor_instance;
-	thread th1(ex_func, &elevator_monitor_instance, list_of_persons);
+	thread th1(ex_func, elevator_monitor_instance, list_of_persons);
 	sleep(3);
-	thread th2(ex_func_2, &elevator_monitor_instance, list_of_persons);
+	thread th2(ex_func_2, elevator_monitor_instance, list_of_persons);
 	th1.join();
 	th2.join();
 
