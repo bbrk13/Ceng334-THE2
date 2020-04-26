@@ -53,7 +53,7 @@ void ex_func(elevator_monitor em, vector<vector<int> > person_list_ex) {
 	em.method1(std::move(person_list_ex));
 	cout<< "em.method1() is ended."<<endl;
 }
-void ex_func_2(elevator_monitor em) {
+void ex_func_2(elevator_monitor em, vector<vector<int> > person_list_ex) {
 	cout<<"ex_func_2 is called"<<endl;
 	cout<< "em.method is unlocked"<<endl;
 	em.method2();
