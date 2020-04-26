@@ -11,6 +11,7 @@
 #include <sstream>
 #include <list>
 #include <iterator>
+#include <utility>
 #include <vector>
 #include <thread>
 #include <sys/wait.h>
@@ -49,13 +50,14 @@ void dummy_func(){
 }
 void ex_func(elevator_monitor em, vector<vector<int> > person_list_ex) {
 	cout<< "em.method1() is called"<< endl;
-	em.method1(person_list_ex);
+	em.method1(std::move(person_list_ex));
 	cout<< "em.method1() is ended."<<endl;
 }
-void ex_func_2(elevator_monitor em, vector<vector<int> > person_list_ex){
+void ex_func_2(elevator_monitor em) {
 	cout<<"ex_func_2 is called"<<endl;
 	cout<< "em.method is unlocked"<<endl;
-	em.cv1_notify();
+	em.method2();
+	//em.cv1_notify();
 }
 
 int main(int argc, char *argv[]) {
