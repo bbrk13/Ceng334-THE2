@@ -13,6 +13,8 @@
 #include <iterator>
 #include <vector>
 #include <thread>
+#include <sys/wait.h>
+#include <unistd.h>
 
 using namespace std;
 
@@ -120,31 +122,17 @@ int main(int argc, char *argv[]) {
 		}
 		index_for_input_line++;
 	}
-
-	/*cout << "number_of_people " << number_of_people << endl;
-	cout << "number_of_floors " << number_of_floors << endl;
-	cout << "travel_time " << travel_time << endl;*/
 	for (int i = 0; i < number_of_people; i++){
-		//auto it = next(list_of_persons.begin(), i);
-		//cout << "people" << i << " weight is " << *it->begin() << endl;
 		cout << i + 1 << " people fetures are;" << endl;
 		for (int y = 0; y < list_of_persons.at(i).size() ; y++){
-			/*cout<<"wieght = " << list_of_persons.at(i).at(0) << endl;
-			cout<< "initial floor = " << list_of_persons.at(i).at(1) << endl;
-			cout << "destination floor = " << list_of_persons.at(i).at(2) << endl;
-			cout << "priority = " << list_of_persons.at(i).at(3) << endl;*/
-
 			cout << "feature " << y + 1 << " is " << list_of_persons.at(i).at(y) << endl;
 		}
 	}
 
 	elevator_monitor elevator_monitor_instance;
-	elevator_monitor_instance.method1(list_of_persons);
-	elevator_monitor_instance.method2();
-
-	thread th2(ex_func_2, elevator_monitor_instance, list_of_persons);
-	thread th1(ex_func, elevator_monitor_instance, list_of_persons);
-
+	thread th1(ex_func, &elevator_monitor_instance, list_of_persons);
+	sleep(3);
+	thread th2(ex_func_2, &elevator_monitor_instance, list_of_persons);
 	th1.join();
 	th2.join();
 
