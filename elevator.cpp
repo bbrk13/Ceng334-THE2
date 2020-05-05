@@ -25,6 +25,7 @@ class person{
 	int person_initial_floor{};
 	int person_destination_floor{};
 	int person_weight{};
+	bool is_person_done = false;
 
 public:
 	person()= default;
@@ -44,6 +45,9 @@ public:
 	int get_person_weight() const{
 		return this->person_weight;
 	}
+	bool get_is_person_done() const{
+		return this->is_person_done;
+	}
 	void set_person_id(int value){
 		this->person_id = value;
 	}
@@ -58,6 +62,9 @@ public:
 	}
 	void set_person_weight(int value){
 		this->person_weight = value;
+	}
+	void set_is_person_done(bool value){
+		this->is_person_done = value;
 	}
 };
 
@@ -174,7 +181,7 @@ public: elevator_monitor():
 		}
 		else
 		{
-			cout << "person couldn't be found" << endl;
+			//cout << "person couldn't be found" << endl;
 		}
 	}
 	void remove_from_people_in_elevator_list(person person_instance){
@@ -196,7 +203,7 @@ public: elevator_monitor():
 		}
 		else
 		{
-			cout << "person is not in the elevator" << endl;
+			//cout << "person is not in the elevator" << endl;
 		}
 	}
 	int get_size_of_destination_floor_list(){
@@ -242,7 +249,10 @@ public: elevator_monitor():
 		cout << current_floor;
 		cout << " -> ";
 		for(int i = 0; i < destination_floors_list.size(); i++){
-			cout << destination_floors_list.at(i) << ", ";
+			if (i + 1 == destination_floors_list.size())
+				cout << destination_floors_list.at(i) ;
+			else
+				cout << destination_floors_list.at(i) << ",";
 		}
 		cout <<")" << endl;
 
@@ -268,7 +278,7 @@ public: elevator_monitor():
 			}
 			// cout << "abs(tmp_floor - this->current_floor) = " << abs(tmp_floor - this->current_floor) << endl;
 			if ((tmp_way == this->direction_of_elevator or this->state_of_elevator == 0) and
-			abs(tmp_floor - this->current_floor) < distance_of_nearest_floor)
+				abs(tmp_floor - this->current_floor) < distance_of_nearest_floor)
 			{
 				// cout << "new destination is calculated" << endl;
 				index_of_nearest_floor = i;
@@ -313,7 +323,8 @@ public: elevator_monitor():
 		__synchronized__;
 		bool is_person_destination_in_the_list = false;
 		bool is_person_in_the_elevator = false;
-		while (/*!is_person_destination_in_the_list and */!is_person_in_the_elevator){
+		while (/*!is_person_destination_in_the_list and */!is_person_in_the_elevator
+				/*!(person_instance.get_is_person_done())*/){
 
 			cv1.wait();
 			// person info
@@ -333,7 +344,7 @@ public: elevator_monitor():
 			int in_out_time = elevator_info.at(6);
 
 
-			if (person_instance.get_person_priotiy() == 1){
+			if (person_instance.get_person_priotiy() == 2){
 				priority.append("hp");
 			}
 			else{
@@ -352,10 +363,23 @@ public: elevator_monitor():
 			{
 				if (this->list_of_people_in_the_elevator.at(y).get_person_id() == person_instance.get_person_id())
 				{
+					//cout << "person " << this->list_of_people_in_the_elevator.at(y).get_person_id() << " is in the elevator" << endl;
 					is_person_in_the_elevator = true;
 					break;
 				} else
 					is_person_in_the_elevator = false;
+			}
+
+			bool is_person_make_request = false;
+			for (int z = 0; z < list_of_person_monitor.size() ; z++){
+				if (this->list_of_person_monitor.at(z).get_person_id() == person_instance.get_person_id())
+				{
+					is_person_make_request = true;
+					break;
+				} else
+				{
+					is_person_make_request = false;
+				}
 			}
 
 			if (person_instance.get_person_initial_floor() < person_instance.get_person_destination_floor()){
@@ -363,28 +387,66 @@ public: elevator_monitor():
 			} else{
 				person_direction = 0;
 			}
+			bool is_person_valid_for_request = false;
+
+			if (this->destination_floors_list.empty())
+				is_person_valid_for_request = true;
+
+			else if (this->direction_of_elevator == person_direction)
+			{
+				if (person_direction == 1 and
+				this->current_floor < person_instance.get_person_initial_floor() )
+				{
+					is_person_valid_for_request = true;
+				}
+
+				if (person_direction == 0 and
+				this->current_floor > person_instance.get_person_initial_floor())
+				{
+					is_person_valid_for_request = true;
+				}
+
+			}
+
+
 
 
 
 			if (!is_person_in_the_elevator )
 			{
-				list_of_person_monitor.push_back(person_instance);
 
-				if (!is_person_destination_in_the_list)
+
+				if (!is_person_destination_in_the_list and
+					is_person_valid_for_request)
+				{
 					destination_floors_list.push_back(person_instance.get_person_initial_floor());
+					this->sort_destination_floor_list();
 
-				cout << "Person (";
-				cout << person_instance.get_person_id();
-				cout << ", " ;
-				cout << priority;
-				cout << ", ";
-				cout << person_instance.get_person_initial_floor();
-				cout << " -> ";
-				cout << person_instance.get_person_destination_floor();
-				cout << ", ";
-				cout << person_instance.get_person_weight();
-				cout << ") made a request" << endl;
-				this->print_elevator_information();
+				}
+
+				if (!is_person_make_request and
+					is_person_valid_for_request)
+				{
+					list_of_person_monitor.push_back(person_instance);
+
+				}
+				if (!is_person_destination_in_the_list or !is_person_make_request)
+				{
+					cout << "Person (";
+					cout << person_instance.get_person_id();
+					cout << ", " ;
+					cout << priority;
+					cout << ", ";
+					cout << person_instance.get_person_initial_floor();
+					cout << " -> ";
+					cout << person_instance.get_person_destination_floor();
+					cout << ", ";
+					cout << person_instance.get_person_weight();
+					cout << ") made a request" << endl;
+					this->print_elevator_information();
+				}
+
+
 				// destination_floors_list.push_back(person_destination_floor);
 			}
 			/*else
@@ -406,6 +468,7 @@ public: elevator_monitor():
 				//}
 
 			}*/
+			//sleep(2);
 			cv2.notify();
 		}
 	}
@@ -515,7 +578,7 @@ void print_new_dest_floor(vector<int> new_dest){
 
 void print_person_entered(person person_instance){
 	string priority;
-	if (person_instance.get_person_priotiy() == 0)
+	if (person_instance.get_person_priotiy() == 1)
 		priority.append("lp");
 	else
 		priority.append("hp");
@@ -535,7 +598,7 @@ void print_person_entered(person person_instance){
 
 void print_person_left(person person_instance){
 	string priority;
-	if (person_instance.get_person_priotiy() == 0)
+	if (person_instance.get_person_priotiy() == 1)
 		priority.append("lp");
 	else
 		priority.append("hp");
@@ -554,14 +617,14 @@ void print_person_left(person person_instance){
 }
 
 void elevator_controller_func(int number_of_people_to_serve, int idle_time, elevator_monitor *em, vector<int> elevator_information){
-	cout<<"elevator controller is started"<<endl;
+	//cout<<"elevator controller is started"<<endl;
 	int nanosec = idle_time * 1000;
 	int in_out_time = elevator_information.at(6);
 	in_out_time = in_out_time * 1000;
 	int travel_time = elevator_information.at(4);
 	travel_time = travel_time * 1000;
 	while (number_of_people_to_serve > 0){
-
+		//em->remove_from_destination_list(em->get_current_floor_of_elevator());
 
 		vector<person> person_at_floor_vector_to_enter = em->check_there_is_person_on_the_floor_to_enter(em->get_current_floor_of_elevator());
 		vector<person> person_at_floor_vector_to_exit = em->check_there_is_person_on_the_floor_to_exit(em->get_current_floor_of_elevator());
@@ -574,6 +637,7 @@ void elevator_controller_func(int number_of_people_to_serve, int idle_time, elev
 					person tmp_person = person_at_floor_vector_to_exit.at(i);
 					em->get_person_out(tmp_person);
 					em->remove_from_people_in_elevator_list(tmp_person);
+					tmp_person.set_is_person_done(true);
 					em->sort_destination_floor_list();
 					usleep(in_out_time);
 					print_person_left(tmp_person);
@@ -583,8 +647,66 @@ void elevator_controller_func(int number_of_people_to_serve, int idle_time, elev
 			}
 			if (!(person_at_floor_vector_to_enter.empty())){ //there is a person to enter
 				int tmp_len = person_at_floor_vector_to_enter.size();
-				//cout << "There are " << tmp_len << " people to enter" << endl;
-				for (int i = 0; i < tmp_len ;i++ ){
+				vector <person> high_priotiry_people_vector;
+				vector<person> low_priority_people_vector;
+				for (int i = 0; i < tmp_len; i++){
+					person temporary_person = person_at_floor_vector_to_enter.at(i);
+					if (temporary_person.get_person_priotiy() == 2)
+						high_priotiry_people_vector.push_back(temporary_person);
+					else
+						low_priority_people_vector.push_back(temporary_person);
+				}
+
+				//cout << "-----There are " << high_priotiry_people_vector.size() << " high priority people to enter-----" << endl;
+				//cout << "-----There are " << low_priority_people_vector.size() << " low priority people to enter-----" << endl;
+
+				for (int i = 0; i < high_priotiry_people_vector.size() ;i++ ){
+					person tmp_person = high_priotiry_people_vector.at(i);
+					int person_direction;
+					if (tmp_person.get_person_initial_floor() < tmp_person.get_person_destination_floor())
+						person_direction = 1;
+					else
+						person_direction = 0;
+
+					if (em->get_carried_weight_of_elevator() + tmp_person.get_person_weight() <= elevator_information.at(2) and
+						em->get_number_of_people_in_the_elevator() + 1 <= elevator_information.at(3) and
+						(em->get_direction_of_elevator() == person_direction or em->get_state_of_elevator() == 0))
+					{
+						em->get_person_in(tmp_person);
+						em->sort_destination_floor_list();
+						em->add_to_list_of_people_in_elevator(tmp_person);
+						em->add_to_destination_floor_list(tmp_person.get_person_destination_floor());
+						em->remove_from_list_of_person_monitor(tmp_person);
+						usleep(in_out_time);
+						print_person_entered(tmp_person);
+						em->print_elevator_information();
+					}
+				}
+				for (int i = 0; i < low_priority_people_vector.size() ;i++ ){
+					person tmp_person = low_priority_people_vector.at(i);
+					int person_direction;
+					if (tmp_person.get_person_initial_floor() < tmp_person.get_person_destination_floor())
+						person_direction = 1;
+					else
+						person_direction = 0;
+
+					if (em->get_carried_weight_of_elevator() + tmp_person.get_person_weight() <= elevator_information.at(2) and
+						em->get_number_of_people_in_the_elevator() + 1 <= elevator_information.at(3) and
+						(em->get_direction_of_elevator() == person_direction or em->get_state_of_elevator() == 0))
+					{
+						em->get_person_in(tmp_person);
+						em->sort_destination_floor_list();
+						em->add_to_list_of_people_in_elevator(tmp_person);
+						em->add_to_destination_floor_list(tmp_person.get_person_destination_floor());
+						em->remove_from_list_of_person_monitor(tmp_person);
+						usleep(in_out_time);
+						print_person_entered(tmp_person);
+						em->print_elevator_information();
+					}
+				}
+
+				// original
+				/*for (int i = 0; i < tmp_len ;i++ ){
 					person tmp_person = person_at_floor_vector_to_enter.at(i);
 					int person_direction;
 					if (tmp_person.get_person_initial_floor() < tmp_person.get_person_destination_floor())
@@ -605,42 +727,49 @@ void elevator_controller_func(int number_of_people_to_serve, int idle_time, elev
 						print_person_entered(tmp_person);
 						em->print_elevator_information();
 					}
-				}
+				}*/
 			}
 		}
 		em->remove_from_destination_list(em->get_current_floor_of_elevator());
 		vector<int> destination = em->find_the_next_destination_floor();
-		print_new_dest_floor(destination);
+		// print_new_dest_floor(destination);
 
 		if (destination.at(0) == 9999){
 			em->set_state_of_elevator(0);
-			//cout << "cv1_notify" << endl;
+			if (em->get_size_of_destination_floor_list() < 0)
+				em->print_elevator_information();
 			em->cv1_notify();
 			usleep(nanosec);
 		}
 		else
 		{
 			if (destination.at(1) == 1){
+				//em->print_elevator_information();
 				em->set_state_of_elevator(1);
 				//cout << "cv1_notify" << endl;
 				em->cv1_notify();
 				usleep(elevator_information.at(4) * 1000);
 				em->move_elevator_up();
+				em->print_elevator_information();
 
 			}
 			else {
+				//em->print_elevator_information();
 				em->set_state_of_elevator(2);
 				//cout << "cv1_notify" << endl;
 				em->cv1_notify();
 				usleep(elevator_information.at(4) * 1000);
 				em->move_elevator_down();
+				em->print_elevator_information();
 			}
 
 		}
 		em->sort_destination_floor_list();
-		em->print_elevator_information();
-
+		//em->print_elevator_information();
+		//cout << "----- number of people in monitor list = " << em->get_size_of_list_of_person_monitor()<< "------" << endl;
 	}
+	em->print_elevator_information();
+
 
 
 }
@@ -699,7 +828,8 @@ int main(int argc, char *argv[]) {
 						in_out_time = stoi(word);
 						break;
 					default:
-						cout<<"wrong input for the first line" << endl;
+						break;
+						//cout<<"wrong input for the first line" << endl;
 				}
 				index_for_input_features++;
 			}
@@ -746,7 +876,7 @@ int main(int argc, char *argv[]) {
 	}
 	elevator_controller_thread.join();
 
-	cout << "all threads are finished" << endl;
+	//cout << "all threads are finished" << endl;
 
 
 
